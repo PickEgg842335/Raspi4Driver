@@ -3,33 +3,159 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/init.h>
-#include <linux/gpio.h> 
+#include <linux/gpio.h>
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 
 #include "./include/gpiopin.h"
 
 //LED is connected to this GPIO
-#define PIN Rpi4_GPIO17
+#define PIN Rpi4_GPIO4
 #define DEVICE_MAJOR 232
 #define DEVICE_NAME "dht11"
 
+unsigned char   ubResultBuf[5];
+unsigned int    uwResultCheckSum = 0;
+unsigned char   ubcheck_flag;
+
+
+int data_in(void)
+{
+    gpio_direction_input(PIN);
+    return gpio_get_value(PIN);
+}
+
+
+void gpio_out(int value)   //set gpio is output
+{
+    gpio_direction_output(PIN,value);
+}
+
+
+void dht11_read_data(void)
+{
+    int wTimeout = 0;
+    unsigned char ubflag = 0;
+    unsigned char ubBitdataTemp = 0;
+
+    gpio_out(0);
+    mdelay(30);
+    gpio_out(1);
+    udelay(40);    
+    if(data_in() == 0)
+    {
+        wTimeout = 0;
+        while(!gpio_get_value(PIN))
+        {
+            udelay(5);
+            wTimeout++;
+            if(wTimeout > 20)
+            {
+                printk("error data!\n");
+                break;
+            }
+        }
+        wTimeout = 0;
+        while(gpio_get_value(PIN))
+        {
+            udelay(5);
+            wTimeout++;
+            if(wTimeout > 20)
+            {
+                printk("error data!\n");
+                break;
+            }
+        }
+    }
+    for(int i = 0; i < 5; i++)
+    {
+        for(int wbitindex = 0; wbitindex < 8; wbitindex++)
+        {              
+            wTimeout = 0;
+            while( !gpio_get_value(PIN) )
+            {
+                udelay(10);
+                wTimeout++;
+                if(wTimeout > 40)
+                {
+                    break;
+                }
+            }
+            ubflag = 0x0;
+            udelay(28);
+            if(gpio_get_value(PIN))
+            {
+                ubflag = 0x01;
+            }
+            wTimeout = 0;
+            while(gpio_get_value(PIN))
+            {
+                udelay(10);
+                wTimeout++;
+                if(wTimeout > 60)
+                {
+                    break;
+                }
+            }
+            ubBitdataTemp <<= 1;
+            ubBitdataTemp |= ubflag;
+        }
+        ubResultBuf[i] = ubBitdataTemp;
+    }
+    uwResultCheckSum = ubResultBuf[0] + ubResultBuf[1] + ubResultBuf[2] + ubResultBuf[3];
+    uwResultCheckSum &= 0x00FF;
+    if((unsigned int)uwResultCheckSum == ubResultBuf[4])
+    {
+        ubcheck_flag = 0xff;
+        printk("dht11 check pass\n");
+        printk("humidity=[%d],temp=[%d]\n", ubResultBuf[0], ubResultBuf[2]);
+    }
+    else
+    {
+        ubcheck_flag = 0x00;
+        printk("dht11 check fail\n");           
+    }                   
+}
+
+
 static int dht11_open(struct inode *inode, struct file *file)
 {
-    printk("open in kernel\n");
+    printk("open dht11 in kernel\n");
     return 0;
 }
 
 
 static int dht11_release(struct inode *inode, struct file *file)
 {
-    printk("humidity release\n");
+    printk("dht11 release\n");
     return 0;
 }
 
 
 static ssize_t dht11_read(struct file *file, char* buffer, size_t size, loff_t *off)
 {
-    return 0;
+    int wRet;
+    local_irq_disable();
+    printk("read dht11\n");
+    dht11_read_data();
+    local_irq_enable();
+    if(ubcheck_flag == 0xff)
+    {
+        wRet = copy_to_user(buffer,ubResultBuf,sizeof(ubResultBuf));
+        if(wRet < 0)
+        {
+            printk("copy to user err\n");
+            return -EAGAIN;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        return -EAGAIN;
+    }
 }
 
 
@@ -48,13 +174,13 @@ static int __init dht11Device_init(void)
     /*
      * Register device
     */
-    int ret;
+    int wRet;
 
-    ret = register_chrdev(DEVICE_MAJOR, DEVICE_NAME, &strdht11_dev_fops);
-    if (ret < 0) {
+    wRet = register_chrdev(DEVICE_MAJOR, DEVICE_NAME, &strdht11_dev_fops);
+    if (wRet < 0) {
         printk(KERN_INFO "%s: registering device %s with major %d failed with %d\n",
             __func__, DEVICE_NAME, DEVICE_MAJOR, DEVICE_MAJOR );
-        return(ret);
+        return(wRet);
     }
     printk("DHT11 driver register success!\n");
 
@@ -62,10 +188,18 @@ static int __init dht11Device_init(void)
     if (IS_ERR(dht_class))
     {
         printk(KERN_WARNING "Can't make node %d\n", DEVICE_MAJOR);
+        unregister_chrdev(DEVICE_MAJOR, DEVICE_NAME);
         return PTR_ERR(dht_class);
     }
 
     dht_device = device_create(dht_class, NULL, MKDEV(DEVICE_MAJOR, 0), NULL, DEVICE_NAME);
+    if (IS_ERR(dht_device))
+    {
+        printk(KERN_WARNING "Can't make node %d\n", DEVICE_MAJOR);
+        unregister_chrdev(DEVICE_MAJOR, DEVICE_NAME);
+        class_destroy(dht_class);
+        return PTR_ERR(dht_device);
+    }
 
     printk("DHT11 driver make node success!\n");
 
@@ -76,8 +210,8 @@ static int __init dht11Device_init(void)
         unregister_chrdev(DEVICE_MAJOR, DEVICE_NAME);
         device_del(dht_device);
         class_destroy(dht_class);
-        ret = -EBUSY;
-        return(ret);
+        wRet = -EBUSY;
+        return(wRet);
     }
 
     // Set gpios directions
@@ -87,8 +221,8 @@ static int __init dht11Device_init(void)
         unregister_chrdev(DEVICE_MAJOR, DEVICE_NAME);
         device_del(dht_device);
         class_destroy(dht_class);
-        ret = -EBUSY;
-        return(ret);
+        wRet = -EBUSY;
+        return(wRet);
     }
 
     return 0;
