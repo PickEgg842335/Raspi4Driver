@@ -1,14 +1,14 @@
 # Makefile
-all:dht11test.out
+all:led_test.out
 CC = gcc
 INSTDIR = ./Output
 INCLUDE = .
 CFLAGS = -O -Wall -ansi
-objects = main.o interface/dht11Api.o 
-source = main.c interface/dht11Api.c interface/include/dht11Api.h
+objects = main.o interface/colorledApi.o 
+source = main.c interface/colorledApi.c interface/include/colorledApi.h
 MYLIB = mylib.a
-dht11test.out: $(MYLIB)
-	$(CC) -o dht11test.out $(MYLIB)
+led_test.out: $(MYLIB)
+	$(CC) -o led_test.out $(MYLIB)
 
 $(MYLIB): $(MYLIB)($(objects))
 
@@ -20,15 +20,15 @@ $(MYLIB): $(MYLIB)($(objects))
 	#$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
-	-rm dht11test.out *.a
+	-rm led_test.out *.a
 
 .PHONY: install
-install:dht11test.out
+install:led_test.out
 	@if [ -d $(INSTDIR) ];\
 	then \
-		cp dht11test.out $(INSTDIR);\
-		chmod a+x $(INSTDIR)/dht11test.out;\
-		chmod og-w $(INSTDIR)/dht11test.out;\
+		cp led_test.out $(INSTDIR);\
+		chmod a+x $(INSTDIR)/led_test.out;\
+		chmod og-w $(INSTDIR)/led_test.out;\
 		echo "Installed in $(INSTDIR)";\
 	else \
 		echo "Sorry, $(INSTDIR) does not exist";\
