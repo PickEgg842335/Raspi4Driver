@@ -44,48 +44,54 @@ unsigned char sfubGetadxl485DeviceId(void)
 }
 
 
-unsigned int sfuwGetadxl485DataX(void)
+int sfwGetadxl485DataX(void)
 {
     int wfdi2cdev;
-    unsigned int uwdata = 0;
+    short sdata = 0;
+    int wResult = 0;
 
     wfdi2cdev = open(DEVICE_I2C1, O_RDWR);
     i2c_read_bytes(wfdi2cdev, REGISTER_DEVICE_DATAX1, ubbuf, 1);
-    uwdata = (unsigned int)ubbuf[0] << 8;
+    sdata = (short)ubbuf[0] << 8;
     i2c_read_bytes(wfdi2cdev, REGISTER_DEVICE_DATAX0, ubbuf, 1);
-    uwdata |= (unsigned int)ubbuf[0];
+    sdata |= (short)ubbuf[0];
+    wResult = (int)sdata;
     close(wfdi2cdev);
-    return(uwdata);
+    return(wResult);
 }
 
 
-unsigned int sfuwGetadxl485DataY(void)
+int sfwGetadxl485DataY(void)
 {
     int wfdi2cdev;
-    unsigned int uwdata = 0;
+    short sdata = 0;
+    int wResult = 0;
 
     wfdi2cdev = open(DEVICE_I2C1, O_RDWR);
     i2c_read_bytes(wfdi2cdev, REGISTER_DEVICE_DATAY1, ubbuf, 1);
-    uwdata = (unsigned int)ubbuf[0] << 8;
+    sdata = (short)ubbuf[0] << 8;
     i2c_read_bytes(wfdi2cdev, REGISTER_DEVICE_DATAY0, ubbuf, 1);
-    uwdata |= (unsigned int)ubbuf[0];
+    sdata |= (short)ubbuf[0];
+    wResult = (int)sdata;
     close(wfdi2cdev);
-    return(uwdata);
+    return(wResult);
 }
 
 
-unsigned int sfuwGetadxl485DataZ(void)
+int sfwGetadxl485DataZ(void)
 {
     int wfdi2cdev;
-    unsigned int uwdata = 0;
+    short sdata = 0;
+    int wResult = 0;
 
     wfdi2cdev = open(DEVICE_I2C1, O_RDWR);
     i2c_read_bytes(wfdi2cdev, REGISTER_DEVICE_DATAZ1, ubbuf, 1);
-    uwdata = (unsigned int)ubbuf[0] << 8;
+    sdata = (short)ubbuf[0] << 8;
     i2c_read_bytes(wfdi2cdev, REGISTER_DEVICE_DATAZ0, ubbuf, 1);
-    uwdata |= (unsigned int)ubbuf[0];
+    sdata |= (short)ubbuf[0];
+    wResult = (int)sdata;
     close(wfdi2cdev);
-    return(uwdata);
+    return(wResult);
 }
 
 
