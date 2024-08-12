@@ -140,19 +140,9 @@ static int wbs2812bBitOut(unsigned char ubBit)
     switch(ubBit)
     {
         case 0:
-            // gpio_direction_output(PIN, 1);
-            //ndelay(90);
-            // gpio_direction_output(PIN, 0);
-            //ndelay(273);
-            //setPwm0Output(PWMOUTLOW);
             setPwmFIFO(PWMOUTLOW);
         break;
         case 1:
-            // gpio_direction_output(PIN, 1);
-            //ndelay(273);
-            // gpio_direction_output(PIN, 0);
-            //ndelay(90);
-            //setPwm0Output(PWMOUTHIGH);
             setPwmFIFO(PWMOUTHIGH);
         break;
         default:
@@ -185,21 +175,6 @@ static int wbs2812b_release(struct inode *inode, struct file *file)
 
 static ssize_t wbs2812b_write(struct file *file, const char* buffer, size_t size, loff_t *off)
 {
-    // int dev_minor = iminor(file->f_path.dentry->d_inode);
-    // unsigned char ubOutputLevel = 0;
-
-    // if(size == 1)
-    // {
-    //     get_user(bWriteData[dev_minor], buffer++);
-    //     ubOutputLevel = bWriteData[dev_minor] & 0x01;
-    //     gpio_direction_output(uwLedPin[dev_minor], ubOutputLevel);
-    //     return 1;
-    // }
-    // else
-    // {
-    //     printk( KERN_INFO "Write Data error\n");
-    //     return -1;
-    // }
     return -1;
 }
 
@@ -351,19 +326,6 @@ static int __init wbs2812bDevice_init(void)
     printk(KERN_INFO "GPIO12 is set to PWM mode\n");
     setPwmFIFO(PWMIdle);
     setStartPwmFIFO();
-    // ret = gpio_direction_output(PIN, 1);
-    // if(ret < 0 )
-    // {
-    //     printk( KERN_INFO "%s: %s unable to set TRIG gpio as output\n", DEVICE_NAME, __func__ );
-    //     gpio_direction_input(PIN);
-    //     gpio_free(PIN);
-    //     device_del(mywbs2812b.dev);
-    //     class_destroy(mywbs2812b.class);
-    //     cdev_del(&mywbs2812b.cdev);
-    //     unregister_chrdev_region(MKDEV(DEVICE_MAJOR, 0), 1);
-    //     ret = -EBUSY;
-    //     return(ret);
-    // }
     return 0;
 }
 
